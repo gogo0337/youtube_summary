@@ -124,8 +124,8 @@ export default function App() {
         <div className="flex items-center gap-3">
           <div className="text-red-500 text-2xl">▶</div>
           <div>
-            <h1 className="text-white text-lg font-bold leading-none">YouTube 영상 분석기</h1>
-            <p className="text-gray-500 text-xs mt-0.5">알고리즘 인기 영상 탐색 도구</p>
+            <h1 className="text-white text-lg font-bold leading-none">영상 분석기</h1>
+            <p className="text-gray-500 text-xs mt-0.5">인기 영상 탐색 도구</p>
           </div>
         </div>
         <QuotaMonitor quota={quota} remaining={remaining} percent={percent} onReset={reset} />
