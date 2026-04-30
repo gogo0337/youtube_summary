@@ -128,8 +128,9 @@ function isShortVideo(duration) {
 function calcPerformance(viewCount, subscriberCount, publishedAt) {
   if (subscriberCount === 0) return { score: 0, grade: '최하' }
 
-  // 최소 임계값: 너무 작은 채널/영상은 통계적으로 의미 없음
-  if (viewCount < 1000 || subscriberCount < 500) {
+  // 최소 임계값: 조회수 1,000 미만은 통계적으로 의미 없음
+  // 구독자 수는 제한 없음 - 소형 채널 바이럴도 정상 평가
+  if (viewCount < 1000) {
     return { score: 1, grade: '최하' }
   }
 
