@@ -1,11 +1,14 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import SearchBar from './components/SearchBar'
+import SearchHistory from './components/SearchHistory'
 import ResultFilter from './components/ResultFilter'
 import VideoTable from './components/VideoTable'
 import VideoModal from './components/VideoModal'
 import QuotaMonitor from './components/QuotaMonitor'
+import TrendingPanel from './components/TrendingPanel'
 import { searchVideos } from './api/youtube'
 import { useQuota } from './hooks/useQuota'
+import { useSearchHistory } from './hooks/useSearchHistory'
 
 const DEFAULT_FILTERS = {
   includeShorts: false,
@@ -30,9 +33,9 @@ function applyFiltersAndSort(videos, filters) {
 
   result.sort((a, b) => {
     let av, bv
-    if (filters.sortKey === 'performance') { av = a.performance?.score; bv = b.performance?.score }
+    if (filters.sortKey === 'performance')   { av = a.performance?.score;  bv = b.performance?.score }
     else if (filters.sortKey === 'contribution') { av = a.contribution?.score; bv = b.contribution?.score }
-    else if (filters.sortKey === 'publishedAt') { av = new Date(a.publishedAt); bv = new Date(b.publishedAt) }
+    else if (filters.sortKey === 'publishedAt')  { av = new Date(a.publishedAt); bv = new Date(b.publishedAt) }
     else { av = a[filters.sortKey]; bv = b[filters.sortKey] }
     return filters.sortDir === 'desc' ? bv - av : av - bv
   })
@@ -40,18 +43,27 @@ function applyFiltersAndSort(videos, filters) {
 }
 
 export default function App() {
-  const [allVideos, setAllVideos] = useState([])
-  const [filters, setFilters] = useState(DEFAULT_FILTERS)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [selectedVideo, setSelectedVideo] = useState(null)
-  const [searchDone, setSearchDone] = useState(false)
-  const [loadingMsg, setLoadingMsg] = useState('')
+  const [allVideos,    setAllVideos]    = useState([])
+  const [filters,      setFilters]      = useState(DEFAULT_FILTERS)
+  const [loading,      setLoading]      = useState(false)
+  const [error,        setError]        = useState('')
+  const [selectedVideo,setSelectedVideo]= useState(null)
+  const [searchDone,   setSearchDone]   = useState(false)
+  const [loadingMsg,   setLoadingMsg]   = useState('')
+  // 검색 기록에서 복원 시 표시할 라벨
+  const [restoredInfo, setRestoredInfo] = useState(null) // { query, timestamp }
+
+  const searchBarRef = useRef(null)
 
   const { quota, remaining, percent, addUsage, reset } = useQuota()
+  const { history, addHistory, removeHistory, clearHistory } = useSearchHistory()
 
-  const displayVideos = useMemo(() => applyFiltersAndSort(allVideos, filters), [allVideos, filters])
+  const displayVideos = useMemo(
+    () => applyFiltersAndSort(allVideos, filters),
+    [allVideos, filters]
+  )
 
+  // ── 새 검색 ─────────────────────────────────────────────
   async function handleSearch(opts) {
     if (remaining <= 100) {
       setError(`쿼터가 부족합니다. 잔여: ${remaining} 유닛 (검색 최소 100 유닛 필요)`)
@@ -62,6 +74,7 @@ export default function App() {
     setError('')
     setAllVideos([])
     setSearchDone(false)
+    setRestoredInfo(null)
     setFilters(DEFAULT_FILTERS)
 
     try {
@@ -70,6 +83,7 @@ export default function App() {
       const { videos, quotaUsed } = await searchVideos(opts.query, { publishedAfter, pages: opts.pages })
 
       addUsage(quotaUsed, `"${opts.query}" ${opts.pages * 50}개`)
+      addHistory(opts.query, videos, opts.pages) // 검색 기록 저장
       setAllVideos(videos)
       setSearchDone(true)
     } catch (e) {
@@ -83,6 +97,25 @@ export default function App() {
       setLoading(false)
       setLoadingMsg('')
     }
+  }
+
+  // ── 검색 기록에서 복원 (쿼터 미사용) ──────────────────────
+  function handleHistoryRestore(historyEntry) {
+    setAllVideos(historyEntry.videos)
+    setSearchDone(true)
+    setFilters(DEFAULT_FILTERS)
+    setRestoredInfo({ query: historyEntry.query, timestamp: historyEntry.timestamp })
+    setError('')
+    // 검색창 입력값 동기화
+    searchBarRef.current?.setQueryValue(historyEntry.query)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  // ── 트렌드 패널에서 검색 실행 ──────────────────────────────
+  function handleTrendingSearch(keyword) {
+    searchBarRef.current?.setQueryValue(keyword)
+    // 약간의 딜레이 없이 바로 검색 실행
+    handleSearch({ query: keyword, period: '', pages: 2 })
   }
 
   return (
@@ -99,14 +132,29 @@ export default function App() {
       </header>
 
       <main className="max-w-screen-xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
-        <SearchBar onSearch={handleSearch} loading={loading} />
 
+        {/* 검색창 */}
+        <SearchBar ref={searchBarRef} onSearch={handleSearch} loading={loading} />
+
+        {/* 검색 기록 (쿼터 미사용) */}
+        <SearchHistory
+          history={history}
+          onRestore={handleHistoryRestore}
+          onRemove={removeHistory}
+          onClear={clearHistory}
+        />
+
+        {/* 인기 트렌드 */}
+        <TrendingPanel onSearch={handleTrendingSearch} onQuotaUsed={addUsage} />
+
+        {/* 에러 */}
         {error && (
           <div className="bg-red-900/30 border border-red-700 text-red-400 rounded-lg px-4 py-3 mb-4 text-sm">
             {error}
           </div>
         )}
 
+        {/* 로딩 */}
         {loading && (
           <div className="flex flex-col items-center justify-center py-24 text-gray-400 gap-3">
             <div className="w-10 h-10 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
@@ -114,14 +162,29 @@ export default function App() {
           </div>
         )}
 
+        {/* 검색 결과 */}
         {searchDone && !loading && (
           <>
+            {/* 캐시 복원 배너 */}
+            {restoredInfo && (
+              <div className="flex items-center gap-2 mb-3 px-0.5">
+                <span className="text-xs bg-blue-950/40 border border-blue-800/40 text-blue-300 px-3 py-1.5 rounded-full flex items-center gap-2">
+                  <span>💾</span>
+                  <span>
+                    캐시된 결과 복원: <strong>&quot;{restoredInfo.query}&quot;</strong>
+                  </span>
+                  <span className="text-blue-500 font-medium">· 쿼터 미사용</span>
+                </span>
+              </div>
+            )}
+
             <ResultFilter
               filters={filters}
               onChange={setFilters}
               total={allVideos.length}
               filtered={displayVideos.length}
             />
+
             {displayVideos.length === 0 ? (
               <div className="text-center py-16 text-gray-500">
                 <div className="text-4xl mb-3">🔍</div>
@@ -133,6 +196,7 @@ export default function App() {
           </>
         )}
 
+        {/* 초기 안내 */}
         {!searchDone && !loading && (
           <div className="text-center py-24 text-gray-600">
             <div className="text-5xl mb-4">📺</div>

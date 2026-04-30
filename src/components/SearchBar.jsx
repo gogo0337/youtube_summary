@@ -1,33 +1,38 @@
-import { useState } from 'react'
+import { useState, forwardRef, useImperativeHandle } from 'react'
 
 const PERIOD_OPTIONS = [
   { label: '전체', value: '' },
-  { label: '1주', value: 7 },
+  { label: '1주',  value: 7 },
   { label: '1개월', value: 30 },
   { label: '3개월', value: 90 },
   { label: '6개월', value: 180 },
 ]
 
 const PAGE_OPTIONS = [
-  { label: '50개', value: 1 },
+  { label: '50개',  value: 1 },
   { label: '100개', value: 2 },
   { label: '150개', value: 3 },
   { label: '200개', value: 4 },
 ]
 
-export default function SearchBar({ onSearch, loading }) {
-  const [query, setQuery] = useState('')
+const SearchBar = forwardRef(function SearchBar({ onSearch, loading }, ref) {
+  const [query,  setQuery]  = useState('')
   const [period, setPeriod] = useState('')
-  const [pages, setPages] = useState(2)
+  const [pages,  setPages]  = useState(2)
+
+  // 부모에서 검색어를 외부 주입할 수 있도록 노출
+  useImperativeHandle(ref, () => ({
+    setQueryValue(q) { setQuery(q) },
+  }))
 
   function handleSubmit(e) {
     e.preventDefault()
     if (!query.trim()) return
-    onSearch({ query, period, pages })
+    onSearch({ query: query.trim(), period, pages })
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-[#1a1a1a] rounded-xl p-3 sm:p-4 mb-4 space-y-3">
+    <form onSubmit={handleSubmit} className="bg-[#1a1a1a] rounded-xl p-3 sm:p-4 mb-3 space-y-3">
       {/* 검색 입력 */}
       <div className="flex gap-2">
         <input
@@ -46,7 +51,7 @@ export default function SearchBar({ onSearch, loading }) {
         </button>
       </div>
 
-      {/* 옵션: 게시일 */}
+      {/* 게시일 */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span className="text-gray-500 text-xs w-10 flex-shrink-0">게시일</span>
         <div className="flex flex-wrap gap-1">
@@ -67,7 +72,7 @@ export default function SearchBar({ onSearch, loading }) {
         </div>
       </div>
 
-      {/* 옵션: 검색 개수 */}
+      {/* 검색 개수 */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span className="text-gray-500 text-xs w-10 flex-shrink-0">개수</span>
         <div className="flex flex-wrap gap-1">
@@ -90,4 +95,6 @@ export default function SearchBar({ onSearch, loading }) {
       </div>
     </form>
   )
-}
+})
+
+export default SearchBar
