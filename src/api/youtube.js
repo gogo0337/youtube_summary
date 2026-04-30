@@ -119,37 +119,57 @@ function isShortVideo(duration) {
 }
 
 /**
- * 실적도: 일별 조회율 기반 확산력 측정
- * 구독자 대비 하루 평균 몇 %의 구독자에게 도달했는지 측정
- * 오래된 영상일수록 자연 감쇠를 반영하여 공평하게 비교
+ * 실적도: 확산력 측정
+ * - 최소 기준: 조회수 1,000 이상 + 구독자 500 이상 (소형 채널 과대평가 방지)
+ * - 1단계: 구독자 대비 총 조회율 (절대 확산력)
+ * - 2단계: 일평균 조회율 (최신성 반영)
+ * - 두 점수를 가중 평균해서 종합 판단
  */
 function calcPerformance(viewCount, subscriberCount, publishedAt) {
   if (subscriberCount === 0) return { score: 0, grade: '최하' }
 
-  const daysSince = Math.max(1, (Date.now() - new Date(publishedAt)) / 86400000)
-  const dailyViews = viewCount / daysSince
-  // 구독자 대비 일평균 도달률 (%)
-  const reachRate = (dailyViews / subscriberCount) * 100
+  // 최소 임계값: 너무 작은 채널/영상은 통계적으로 의미 없음
+  if (viewCount < 1000 || subscriberCount < 500) {
+    return { score: 1, grade: '최하' }
+  }
 
-  if (reachRate >= 1)    return { score: 5, grade: '최상' }
-  if (reachRate >= 0.3)  return { score: 4, grade: '상' }
-  if (reachRate >= 0.05) return { score: 3, grade: '중' }
-  if (reachRate >= 0.01) return { score: 2, grade: '하' }
+  const daysSince = Math.max(1, (Date.now() - new Date(publishedAt)) / 86400000)
+
+  // 절대 확산력: 구독자 대비 누적 조회율 (채널 전체 도달률)
+  const totalReach = viewCount / subscriberCount
+
+  // 상대 확산력: 일평균 조회 / 구독자 (최신성 보정)
+  const dailyReach = (viewCount / daysSince) / subscriberCount
+
+  // 영상 나이에 따라 두 지표 가중치 조정
+  // - 30일 미만: 최신성(일평균) 중심
+  // - 30~180일: 균형
+  // - 180일 초과: 누적 중심
+  const ageFactor = Math.min(1, daysSince / 180)
+  const blended = totalReach * ageFactor + dailyReach * 30 * (1 - ageFactor)
+
+  if (blended >= 3)    return { score: 5, grade: '최상' }
+  if (blended >= 1)    return { score: 4, grade: '상' }
+  if (blended >= 0.2)  return { score: 3, grade: '중' }
+  if (blended >= 0.05) return { score: 2, grade: '하' }
   return { score: 1, grade: '최하' }
 }
 
 /**
- * 공헌도: 가중치 참여율 기반 채널 성장 기여도 측정
- * 댓글은 좋아요보다 알고리즘 가중치가 높으므로 5배 반영
+ * 공헌도: 채널 성장 기여도 측정
+ * - 최소 기준: 조회수 1,000 이상
+ * - 좋아요: 직접 호감 신호
+ * - 댓글: 알고리즘 가중치 높은 참여 (2배 반영, 5배는 과도)
+ * - 참여율 = (좋아요 + 댓글×2) / 조회수 × 100
  */
 function calcContribution(likeCount, commentCount, viewCount) {
-  if (viewCount === 0) return { score: 0, grade: '최하' }
+  if (viewCount < 1000) return { score: 1, grade: '최하' }
 
-  const weighted = (likeCount + commentCount * 5) / viewCount * 100
+  const engagement = (likeCount + commentCount * 2) / viewCount * 100
 
-  if (weighted >= 5)   return { score: 5, grade: '최상' }
-  if (weighted >= 2)   return { score: 4, grade: '상' }
-  if (weighted >= 0.8) return { score: 3, grade: '중' }
-  if (weighted >= 0.2) return { score: 2, grade: '하' }
+  if (engagement >= 3)   return { score: 5, grade: '최상' }
+  if (engagement >= 1.5) return { score: 4, grade: '상' }
+  if (engagement >= 0.5) return { score: 3, grade: '중' }
+  if (engagement >= 0.1) return { score: 2, grade: '하' }
   return { score: 1, grade: '최하' }
 }
