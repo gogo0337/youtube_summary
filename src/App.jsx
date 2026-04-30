@@ -87,7 +87,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0f0f0f]">
-      <header className="bg-[#111] border-b border-[#2a2a2a] px-6 py-3 flex items-center justify-between">
+      <header className="bg-[#111] border-b border-[#2a2a2a] px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="text-red-500 text-2xl">▶</div>
           <div>
@@ -98,7 +98,7 @@ export default function App() {
         <QuotaMonitor quota={quota} remaining={remaining} percent={percent} onReset={reset} />
       </header>
 
-      <main className="max-w-screen-xl mx-auto px-6 py-6">
+      <main className="max-w-screen-xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
         <SearchBar onSearch={handleSearch} loading={loading} />
 
         {error && (

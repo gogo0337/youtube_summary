@@ -27,69 +27,66 @@ export default function SearchBar({ onSearch, loading }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-[#1a1a1a] rounded-xl p-4 mb-4 space-y-3">
+    <form onSubmit={handleSubmit} className="bg-[#1a1a1a] rounded-xl p-3 sm:p-4 mb-4 space-y-3">
       {/* 검색 입력 */}
       <div className="flex gap-2">
         <input
           type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder="검색어를 입력하세요 (예: 주식 투자, 요리 레시피)"
-          className="flex-1 bg-[#272727] text-white rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-red-500 placeholder-gray-500"
+          placeholder="검색어 입력 (예: 주식 투자, 요리)"
+          className="flex-1 bg-[#272727] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-red-500 placeholder-gray-500 min-w-0"
         />
         <button
           type="submit"
           disabled={loading}
-          className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition whitespace-nowrap"
+          className="bg-red-600 hover:bg-red-700 active:bg-red-800 disabled:opacity-50 text-white px-4 sm:px-6 py-2.5 rounded-lg text-sm font-medium transition whitespace-nowrap flex-shrink-0"
         >
-          {loading ? '검색 중...' : '🔍 검색'}
+          {loading ? '검색 중' : '🔍 검색'}
         </button>
       </div>
 
-      {/* 검색 옵션 */}
-      <div className="flex flex-wrap items-center gap-4 text-sm">
-        {/* 게시일 */}
-        <div className="flex items-center gap-2">
-          <span className="text-gray-500 text-xs">게시일</span>
-          <div className="flex gap-1">
-            {PERIOD_OPTIONS.map(opt => (
-              <button
-                key={opt.label}
-                type="button"
-                onClick={() => setPeriod(opt.value)}
-                className={`px-3 py-1 rounded-md text-xs transition ${
-                  period === opt.value
-                    ? 'bg-red-600 text-white'
-                    : 'bg-[#272727] text-gray-300 hover:bg-[#333]'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+      {/* 옵션: 게시일 */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span className="text-gray-500 text-xs w-10 flex-shrink-0">게시일</span>
+        <div className="flex flex-wrap gap-1">
+          {PERIOD_OPTIONS.map(opt => (
+            <button
+              key={opt.label}
+              type="button"
+              onClick={() => setPeriod(opt.value)}
+              className={`px-3 py-1 rounded-md text-xs transition ${
+                period === opt.value
+                  ? 'bg-red-600 text-white'
+                  : 'bg-[#272727] text-gray-300 hover:bg-[#333]'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
+      </div>
 
-        {/* 검색 개수 */}
-        <div className="flex items-center gap-2">
-          <span className="text-gray-500 text-xs">검색 개수</span>
-          <div className="flex gap-1">
-            {PAGE_OPTIONS.map(opt => (
-              <button
-                key={opt.label}
-                type="button"
-                onClick={() => setPages(opt.value)}
-                className={`px-3 py-1 rounded-md text-xs transition ${
-                  pages === opt.value
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-[#272727] text-gray-300 hover:bg-[#333]'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          <span className="text-gray-600 text-[10px]">※ 많을수록 시간 소요</span>
+      {/* 옵션: 검색 개수 */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span className="text-gray-500 text-xs w-10 flex-shrink-0">개수</span>
+        <div className="flex flex-wrap gap-1">
+          {PAGE_OPTIONS.map(opt => (
+            <button
+              key={opt.label}
+              type="button"
+              onClick={() => setPages(opt.value)}
+              className={`px-3 py-1 rounded-md text-xs transition ${
+                pages === opt.value
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-[#272727] text-gray-300 hover:bg-[#333]'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
+        <span className="text-gray-600 text-[10px]">많을수록 시간 소요</span>
       </div>
     </form>
   )
