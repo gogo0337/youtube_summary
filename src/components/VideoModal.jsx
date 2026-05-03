@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchTopComments } from '../api/youtube'
+import { fetchTranscript } from '../api/transcript'
 
 const GRADE_COLOR = {
   최상: 'text-red-400',
@@ -42,11 +43,17 @@ function stripHtml(html) {
 }
 
 export default function VideoModal({ video, onClose, onQuotaUsed }) {
-  const [comments, setComments]           = useState(null)   // null = 미로드
+  const [comments, setComments]               = useState(null)
   const [commentsLoading, setCommentsLoading] = useState(false)
   const [commentsDisabled, setCommentsDisabled] = useState(false)
-  const [commentsError, setCommentsError] = useState('')
+  const [commentsError, setCommentsError]     = useState('')
   const [showFullComment, setShowFullComment] = useState(null)
+
+  // 스크립트 상태
+  const [transcript, setTranscript]           = useState(null)   // null = 미로드
+  const [transcriptLoading, setTranscriptLoading] = useState(false)
+  const [transcriptState, setTranscriptState] = useState('')     // 'ok'|'noCaption'|'empty'|'error'
+  const [transcriptMeta, setTranscriptMeta]   = useState(null)   // { lang, langName, isAsr }
 
   useEffect(() => {
     const handler = e => { if (e.key === 'Escape') onClose() }
@@ -65,6 +72,10 @@ export default function VideoModal({ video, onClose, onQuotaUsed }) {
     setCommentsDisabled(false)
     setCommentsError('')
     setShowFullComment(null)
+    // 스크립트 초기화
+    setTranscript(null)
+    setTranscriptState('')
+    setTranscriptMeta(null)
     loadComments()
   }, [video?.videoId])
 
@@ -84,6 +95,29 @@ export default function VideoModal({ video, onClose, onQuotaUsed }) {
       setCommentsError('댓글을 불러오지 못했습니다.')
     } finally {
       setCommentsLoading(false)
+    }
+  }
+
+  async function loadTranscript() {
+    if (transcriptLoading || transcriptState) return
+    setTranscriptLoading(true)
+    try {
+      const result = await fetchTranscript(video.videoId, 30)
+      if (result.noCaption) {
+        setTranscriptState('noCaption')
+      } else if (result.empty) {
+        setTranscriptState('empty')
+        setTranscriptMeta({ lang: result.lang, langName: result.langName, isAsr: result.isAsr })
+      } else {
+        setTranscript(result.transcript)
+        setTranscriptMeta({ lang: result.lang, langName: result.langName, isAsr: result.isAsr })
+        setTranscriptState('ok')
+      }
+    } catch (e) {
+      console.error('Transcript error:', e)
+      setTranscriptState('error')
+    } finally {
+      setTranscriptLoading(false)
     }
   }
 
@@ -272,6 +306,84 @@ export default function VideoModal({ video, onClose, onQuotaUsed }) {
                       </div>
                     ))}
                   </div>
+            )}
+          </div>
+
+          {/* ── 초반 30초 스크립트 ── */}
+          <div className="bg-[#161616] border border-[#2a2a2a] rounded-xl p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-white text-xs font-semibold flex items-center gap-1.5">
+                <span>📝</span> 초반 30초 스크립트
+              </span>
+              <div className="flex items-center gap-2">
+                {transcriptMeta && (
+                  <span className="text-[10px] text-gray-600 flex items-center gap-1">
+                    {transcriptMeta.langName}
+                    {transcriptMeta.isAsr && (
+                      <span className="bg-[#2a2a2a] text-gray-500 px-1 rounded">자동생성</span>
+                    )}
+                  </span>
+                )}
+                {/* 불러오기 버튼 (미로드 상태에서만 표시) */}
+                {!transcriptState && !transcriptLoading && (
+                  <button
+                    onClick={loadTranscript}
+                    className="text-[10px] bg-[#252525] hover:bg-[#333] border border-[#383838] text-gray-300 px-2.5 py-1 rounded-md transition"
+                  >
+                    불러오기
+                  </button>
+                )}
+                {/* 재시도 버튼 */}
+                {transcriptState === 'error' && (
+                  <button
+                    onClick={() => { setTranscriptState(''); loadTranscript() }}
+                    className="text-[10px] text-red-400 hover:text-red-300 transition"
+                  >
+                    재시도
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* 로딩 */}
+            {transcriptLoading && (
+              <div className="flex items-center gap-2 py-3 justify-center">
+                <div className="w-4 h-4 border-2 border-gray-500 border-t-transparent rounded-full animate-spin" />
+                <span className="text-gray-500 text-xs">자막 가져오는 중...</span>
+              </div>
+            )}
+
+            {/* 초기 안내 (미로드) */}
+            {!transcriptState && !transcriptLoading && (
+              <p className="text-gray-600 text-[11px] text-center py-2">
+                버튼을 누르면 자막 기반 스크립트를 표시합니다 · 쿼터 미사용
+              </p>
+            )}
+
+            {/* 자막 없음 */}
+            {transcriptState === 'noCaption' && (
+              <p className="text-gray-600 text-xs text-center py-2">이 영상에는 자막이 없습니다.</p>
+            )}
+
+            {/* 30초 내 자막 없음 */}
+            {transcriptState === 'empty' && (
+              <p className="text-gray-600 text-xs text-center py-2">초반 30초 구간에 자막 데이터가 없습니다.</p>
+            )}
+
+            {/* 오류 */}
+            {transcriptState === 'error' && (
+              <p className="text-red-400 text-xs text-center py-2">
+                자막을 불러오지 못했습니다. (CORS 프록시 일시 불가 또는 자막 없음)
+              </p>
+            )}
+
+            {/* 스크립트 텍스트 */}
+            {transcriptState === 'ok' && transcript && (
+              <div className="bg-[#1e1e1e] rounded-lg p-3">
+                <p className="text-gray-200 text-[12px] leading-relaxed whitespace-pre-wrap">
+                  {transcript}
+                </p>
+              </div>
             )}
           </div>
 
