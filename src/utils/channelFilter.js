@@ -1,11 +1,15 @@
 /**
- * 기업·방송 채널 판별 유틸
+ * 채널·영상 성격 판별 유틸
  *
- * 기업 채널의 특징
+ * [기업 채널]
  *  1. 영상 수 500개 초과 → 방송사·언론사는 매일 수십 개 업로드
  *  2. 채널명에 방송사·엔터사 이름 포함
  *  3. Official / 공식 키워드
- *  4. 뉴스·엔터테인먼트 법인 키워드
+ *
+ * [음악·플레이리스트 영상]
+ *  1. YouTube 카테고리 10(Music) + 30분↑ → 음악 컴필레이션·스트림
+ *  2. 제목에 playlist·bgm·lofi·배경음악 등 키워드
+ *  3. 채널명에 music·playlist·lofi 등 포함
  */
 
 const CORPORATE_VIDEO_THRESHOLD = 500
@@ -34,4 +38,67 @@ const CORPORATE_PATTERNS = [
 export function isCorporateChannel(channelTitle, videoCount) {
   if (videoCount > CORPORATE_VIDEO_THRESHOLD) return true
   return CORPORATE_PATTERNS.some(p => p.test(channelTitle))
+}
+
+// ─────────────────────────────────────────────────────────────
+// 음악·플레이리스트 영상 탐지
+// ─────────────────────────────────────────────────────────────
+
+// YouTube 카테고리 ID 10 = Music
+const MUSIC_CATEGORY_ID = '10'
+// Music 카테고리이면서 이 초수 이상이면 컴필레이션/스트림으로 판단 (30분)
+const MUSIC_LONG_THRESHOLD_SECS = 1800
+
+// 제목 기반 패턴
+const MUSIC_TITLE_PATTERNS = [
+  /\bplaylist\b/i,
+  /플레이리스트/,
+  /\blo[\s-]?fi\b/i,
+  /\bbgm\b/i,
+  /배경\s*음악/,
+  /노래\s*모음/,
+  /연속\s*재생/,
+  /모음\s*집/,
+  /수면\s*음악/,
+  /\bsleep\s*music\b/i,
+  /\brelaxing\s*music\b/i,
+  /\bstudy\s*music\b/i,
+  /\bmeditation\s*music\b/i,
+  /\bchill\s*(music|mix|hop|out)\b/i,
+  /\bambient\s*music\b/i,
+  /\basmr\b/i,
+  /공부할\s*때/,
+  /작업할\s*때/,
+  /집중\s*(음악|할\s*때|용)/,
+  // "1시간", "2시간" + 음악 컨텍스트
+  /[1-9]\s*시간\s*(연속|음악|재생|모음|듣기|뮤직)/,
+]
+
+// 채널명 기반 패턴
+const MUSIC_CHANNEL_PATTERNS = [
+  /\bplaylist\b/i,
+  /플레이리스트/,
+  /\blo[\s-]?fi\b/i,
+  /\bbgm\b/i,
+  /\bstudy\s*music\b/i,
+  /\bchill\s*(music|hop)\b/i,
+  /\brelaxing\b/i,
+  /\bambient\s*music\b/i,
+]
+
+/**
+ * @param {string} title
+ * @param {string} channelTitle
+ * @param {string} categoryId  - YouTube video categoryId
+ * @param {number} durationSecs
+ * @returns {boolean} true = 음악 단순재생·플레이리스트 영상
+ */
+export function isMusicPlaylist(title, channelTitle, categoryId, durationSecs) {
+  // Music 카테고리 + 30분 이상 = 컴필레이션·스트림 (MV는 보통 5분 미만)
+  if (categoryId === MUSIC_CATEGORY_ID && durationSecs >= MUSIC_LONG_THRESHOLD_SECS) return true
+  // 제목 키워드
+  if (MUSIC_TITLE_PATTERNS.some(p => p.test(title))) return true
+  // 채널명 키워드
+  if (MUSIC_CHANNEL_PATTERNS.some(p => p.test(channelTitle))) return true
+  return false
 }

@@ -9,7 +9,7 @@ import TrendingPanel from './components/TrendingPanel'
 import { searchVideos } from './api/youtube'
 import { useQuota } from './hooks/useQuota'
 import { useSearchHistory } from './hooks/useSearchHistory'
-import { isCorporateChannel } from './utils/channelFilter'
+import { isCorporateChannel, isMusicPlaylist } from './utils/channelFilter'
 
 const DEFAULT_FILTERS = {
   includeShorts: false,
@@ -19,6 +19,7 @@ const DEFAULT_FILTERS = {
   sortDir: 'desc',
   excludeCorporate: false,
   maxSubscribers: 0,
+  excludeMusicPlaylist: true, // 기본값: 음악 단순재생 제외
 }
 
 function getPublishedAfter(days) {
@@ -37,6 +38,8 @@ function applyFiltersAndSort(videos, filters) {
   if (filters.excludeCorporate) result = result.filter(v => !isCorporateChannel(v.channelTitle, v.videoCount))
   // 구독자 상한
   if (filters.maxSubscribers > 0) result = result.filter(v => v.subscriberCount <= filters.maxSubscribers)
+  // 음악·플레이리스트 제외
+  if (filters.excludeMusicPlaylist) result = result.filter(v => !isMusicPlaylist(v.title, v.channelTitle, v.categoryId, v.durationSecs))
 
   result.sort((a, b) => {
     let av, bv

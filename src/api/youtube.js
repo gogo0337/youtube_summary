@@ -52,6 +52,7 @@ export async function searchVideos(query, options = {}) {
     const videoId = item.id.videoId
     const stats = statsMap[videoId]?.statistics || {}
     const duration = statsMap[videoId]?.contentDetails?.duration || ''
+    const categoryId = statsMap[videoId]?.snippet?.categoryId || ''
     const channelStats = channelMap[item.snippet.channelId]?.statistics || {}
     const publishedAt = item.snippet.publishedAt
 
@@ -60,6 +61,7 @@ export async function searchVideos(query, options = {}) {
     const commentCount = parseInt(stats.commentCount || 0)
     const subscriberCount = parseInt(channelStats.subscriberCount || 0)
     const videoCount = parseInt(channelStats.videoCount || 0)
+    const durationSecs = parseDurationSecs(duration)
 
     return {
       videoId,
@@ -75,7 +77,9 @@ export async function searchVideos(query, options = {}) {
       subscriberCount,
       videoCount,
       duration,
-      isShorts: isShortVideo(duration),
+      durationSecs,
+      categoryId,
+      isShorts: durationSecs > 0 && durationSecs <= 60,
       performance: calcPerformance(viewCount, subscriberCount, publishedAt),
       contribution: calcContribution(likeCount, commentCount, viewCount),
     }
@@ -89,7 +93,8 @@ async function fetchVideoStats(videoIds) {
   for (let i = 0; i < videoIds.length; i += 50) {
     const chunk = videoIds.slice(i, i + 50).join(',')
     const res = await axios.get(`${BASE_URL}/videos`, {
-      params: { part: 'statistics,contentDetails', id: chunk, key: API_KEY },
+      // snippet 추가: categoryId 획득 (쿼터 비용 동일 — 1유닛/call)
+      params: { part: 'snippet,statistics,contentDetails', id: chunk, key: API_KEY },
     })
     res.data.items.forEach(v => { map[v.id] = v })
   }
@@ -108,14 +113,13 @@ async function fetchChannelStats(channelIds) {
   return map
 }
 
-function isShortVideo(duration) {
-  if (!duration) return false
+function parseDurationSecs(duration) {
+  if (!duration) return 0
   const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
-  if (!match) return false
-  const h = parseInt(match[1] || 0)
-  const m = parseInt(match[2] || 0)
-  const s = parseInt(match[3] || 0)
-  return h * 3600 + m * 60 + s <= 60
+  if (!match) return 0
+  return parseInt(match[1] || 0) * 3600
+       + parseInt(match[2] || 0) * 60
+       + parseInt(match[3] || 0)
 }
 
 /**
