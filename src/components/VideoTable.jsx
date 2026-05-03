@@ -56,17 +56,25 @@ function VideoCard({ video, index, onVideoClick }) {
 
       {/* 지표 */}
       <div className="grid grid-cols-4 border-t border-[#2a2a2a]">
-        {[
-          { label: '조회수', value: fmt(video.viewCount) },
-          { label: '구독자', value: fmt(video.subscriberCount) },
-          { label: '좋아요', value: fmt(video.likeCount) },
-          { label: '댓글', value: fmt(video.commentCount) },
-        ].map(item => (
-          <div key={item.label} className="py-2 text-center border-r border-[#2a2a2a] last:border-r-0">
-            <div className="text-gray-500 text-[9px]">{item.label}</div>
-            <div className="text-white text-xs font-medium mt-0.5">{item.value}</div>
-          </div>
-        ))}
+        <div className="py-2 text-center border-r border-[#2a2a2a]">
+          <div className="text-gray-500 text-[9px]">조회수</div>
+          <div className="text-white text-xs font-medium mt-0.5">{fmt(video.viewCount)}</div>
+        </div>
+        <div className="py-2 text-center border-r border-[#2a2a2a]">
+          <div className="text-gray-500 text-[9px]">구독자</div>
+          <div className="text-white text-xs font-medium mt-0.5">{fmt(video.subscriberCount)}</div>
+          {video.avgViewsPerVideo > 0 && (
+            <div className="text-emerald-600 text-[9px]">평균 {fmt(video.avgViewsPerVideo)}</div>
+          )}
+        </div>
+        <div className="py-2 text-center border-r border-[#2a2a2a]">
+          <div className="text-gray-500 text-[9px]">좋아요</div>
+          <div className="text-white text-xs font-medium mt-0.5">{fmt(video.likeCount)}</div>
+        </div>
+        <div className="py-2 text-center">
+          <div className="text-gray-500 text-[9px]">댓글</div>
+          <div className="text-white text-xs font-medium mt-0.5">{fmt(video.commentCount)}</div>
+        </div>
       </div>
 
       {/* 실적도 / 공헌도 / 게시일 */}
@@ -120,7 +128,12 @@ function TableRow({ video, index, onVideoClick }) {
         </div>
       </td>
       <td className="px-3 py-2 text-gray-300 whitespace-nowrap">{fmt(video.viewCount)}</td>
-      <td className="px-3 py-2 text-gray-300 whitespace-nowrap">{fmt(video.subscriberCount)}</td>
+      <td className="px-3 py-2 whitespace-nowrap">
+        <div className="text-gray-300">{fmt(video.subscriberCount)}</div>
+        {video.avgViewsPerVideo > 0 && (
+          <div className="text-emerald-600 text-[10px] mt-0.5">평균 {fmt(video.avgViewsPerVideo)}</div>
+        )}
+      </td>
       <td className="px-3 py-2">
         <span className={`px-2 py-0.5 rounded text-xs font-medium ${GRADE_COLOR[video.performance?.grade]}`}>
           {video.performance?.grade}

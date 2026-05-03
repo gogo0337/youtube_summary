@@ -56,12 +56,14 @@ export async function searchVideos(query, options = {}) {
     const channelStats = channelMap[item.snippet.channelId]?.statistics || {}
     const publishedAt = item.snippet.publishedAt
 
-    const viewCount = parseInt(stats.viewCount || 0)
-    const likeCount = parseInt(stats.likeCount || 0)
-    const commentCount = parseInt(stats.commentCount || 0)
+    const viewCount       = parseInt(stats.viewCount    || 0)
+    const likeCount       = parseInt(stats.likeCount    || 0)
+    const commentCount    = parseInt(stats.commentCount || 0)
     const subscriberCount = parseInt(channelStats.subscriberCount || 0)
-    const videoCount = parseInt(channelStats.videoCount || 0)
-    const durationSecs = parseDurationSecs(duration)
+    const videoCount      = parseInt(channelStats.videoCount      || 0)
+    const channelTotalViews = parseInt(channelStats.viewCount     || 0)
+    const avgViewsPerVideo  = videoCount > 0 ? Math.round(channelTotalViews / videoCount) : 0
+    const durationSecs    = parseDurationSecs(duration)
 
     return {
       videoId,
@@ -76,6 +78,8 @@ export async function searchVideos(query, options = {}) {
       commentCount,
       subscriberCount,
       videoCount,
+      channelTotalViews,
+      avgViewsPerVideo,
       duration,
       durationSecs,
       categoryId,
@@ -158,6 +162,39 @@ function calcPerformance(viewCount, subscriberCount, publishedAt) {
   if (blended >= 0.2)  return { score: 3, grade: '중' }
   if (blended >= 0.05) return { score: 2, grade: '하' }
   return { score: 1, grade: '최하' }
+}
+
+/**
+ * 베스트 댓글 조회 (relevance 정렬 = 좋아요 많은 순)
+ * 쿼터: 1유닛 / 호출
+ * 댓글 비활성화 영상은 { comments: null, disabled: true } 반환
+ */
+export async function fetchTopComments(videoId) {
+  try {
+    const res = await axios.get(`${BASE_URL}/commentThreads`, {
+      params: {
+        part: 'snippet',
+        videoId,
+        order: 'relevance',
+        maxResults: 5,
+        key: API_KEY,
+      },
+    })
+    const comments = (res.data.items || []).map(item => {
+      const c = item.snippet.topLevelComment.snippet
+      return {
+        authorName: c.authorDisplayName,
+        text: c.textDisplay,
+        likeCount: parseInt(c.likeCount || 0),
+        publishedAt: c.publishedAt,
+      }
+    })
+    return { comments, quotaUsed: 1, disabled: false }
+  } catch (e) {
+    // 403 = 댓글 사용 안 함 or 쿼터 초과
+    if (e.response?.status === 403) return { comments: null, quotaUsed: 0, disabled: true }
+    throw e
+  }
 }
 
 /**

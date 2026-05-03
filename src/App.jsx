@@ -19,7 +19,6 @@ const DEFAULT_FILTERS = {
   sortDir: 'desc',
   excludeCorporate: false,
   maxSubscribers: 0,
-  excludeMusicPlaylist: true, // 기본값: 음악 단순재생 제외
 }
 
 function getPublishedAfter(days) {
@@ -38,8 +37,8 @@ function applyFiltersAndSort(videos, filters) {
   if (filters.excludeCorporate) result = result.filter(v => !isCorporateChannel(v.channelTitle, v.videoCount))
   // 구독자 상한
   if (filters.maxSubscribers > 0) result = result.filter(v => v.subscriberCount <= filters.maxSubscribers)
-  // 음악·플레이리스트 제외
-  if (filters.excludeMusicPlaylist) result = result.filter(v => !isMusicPlaylist(v.title, v.channelTitle, v.categoryId, v.durationSecs))
+  // 음악·플레이리스트 항상 제외 (필터 토글 없이 고정)
+  result = result.filter(v => !isMusicPlaylist(v.title, v.channelTitle, v.categoryId, v.durationSecs))
 
   result.sort((a, b) => {
     let av, bv
@@ -217,7 +216,7 @@ export default function App() {
       </main>
 
       {selectedVideo && (
-        <VideoModal video={selectedVideo} onClose={() => setSelectedVideo(null)} />
+        <VideoModal video={selectedVideo} onClose={() => setSelectedVideo(null)} onQuotaUsed={addUsage} />
       )}
     </div>
   )

@@ -72,26 +72,6 @@ export default function ResultFilter({ filters, onChange, total, filtered }) {
           </div>
         </div>
 
-        {/* 음악·플레이리스트 제외 */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-          <span className="text-gray-500 text-xs w-14 flex-shrink-0 leading-tight">음악·<br/>플레이리스트</span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => update('excludeMusicPlaylist', !filters.excludeMusicPlaylist)}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition ${
-                filters.excludeMusicPlaylist
-                  ? 'bg-emerald-700 text-white'
-                  : 'bg-[#272727] text-gray-400 hover:bg-[#333]'
-              }`}
-            >
-              {filters.excludeMusicPlaylist ? '제외 중' : '전체 포함'}
-            </button>
-            <span className="text-[10px] text-gray-600 leading-tight">
-              BGM·lofi·배경음악·수면음악·연속재생 등 숨김
-            </span>
-          </div>
-        </div>
 
         {/* 구독자 상한 */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
