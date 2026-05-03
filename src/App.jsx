@@ -9,6 +9,7 @@ import TrendingPanel from './components/TrendingPanel'
 import { searchVideos } from './api/youtube'
 import { useQuota } from './hooks/useQuota'
 import { useSearchHistory } from './hooks/useSearchHistory'
+import { isCorporateChannel } from './utils/channelFilter'
 
 const DEFAULT_FILTERS = {
   includeShorts: false,
@@ -16,6 +17,8 @@ const DEFAULT_FILTERS = {
   contributionGrade: '전체',
   sortKey: 'viewCount',
   sortDir: 'desc',
+  excludeCorporate: false,
+  maxSubscribers: 0,
 }
 
 function getPublishedAfter(days) {
@@ -30,6 +33,10 @@ function applyFiltersAndSort(videos, filters) {
   if (!filters.includeShorts) result = result.filter(v => !v.isShorts)
   if (filters.performanceGrade !== '전체') result = result.filter(v => v.performance?.grade === filters.performanceGrade)
   if (filters.contributionGrade !== '전체') result = result.filter(v => v.contribution?.grade === filters.contributionGrade)
+  // 기업·방송 채널 제외
+  if (filters.excludeCorporate) result = result.filter(v => !isCorporateChannel(v.channelTitle, v.videoCount))
+  // 구독자 상한
+  if (filters.maxSubscribers > 0) result = result.filter(v => v.subscriberCount <= filters.maxSubscribers)
 
   result.sort((a, b) => {
     let av, bv
