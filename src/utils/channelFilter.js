@@ -102,3 +102,67 @@ export function isMusicPlaylist(title, channelTitle, categoryId, durationSecs) {
   if (MUSIC_CHANNEL_PATTERNS.some(p => p.test(channelTitle))) return true
   return false
 }
+
+// ─────────────────────────────────────────────────────────────
+// 인기 트렌드 패널 노출 제외 (연예인·MV·음악·게임)
+// ─────────────────────────────────────────────────────────────
+
+// MV·뮤직비디오 제목 패턴
+const MV_TITLE_PATTERNS = [
+  /\bM\/?V\b/,                         // MV / M/V
+  /Music\s*Video/i,
+  /뮤직비디오/,
+  /공식\s*(뮤비|MV)/,
+  /Official\s*(MV|Music\s*Video|Video|Audio|Lyric)/i,
+  /\bMV\s*공개/,
+  /\bComeback\s*(Trailer|Stage)/i,
+  /\b(Teaser|Highlight\s*Medley)\b/i,
+]
+
+// 게임 콘텐츠 제목 패턴 (게임 카테고리 외 채널에서 게임 영상 올린 경우)
+const GAME_TITLE_PATTERNS = [
+  /게임\s*플레이/,
+  /\bgameplay\b/i,
+  /\bwalkthrough\b/i,
+  /공략\s*영상/,
+  /클리어\s*영상/,
+  /\bspeedrun\b/i,
+  /\b(boss|raid|dungeon)\s*공략/i,
+]
+
+// 연예 기획사·음악 채널 패턴
+const ENTERTAINMENT_CHANNEL_PATTERNS = [
+  /\bSMTOWN\b/i,
+  /\bHYBE\s*LABELS?\b/i,
+  /\b(BIGHIT|Bighit\s*Music)\b/i,
+  /\bJYP(\s*Entertainment)?\b/,
+  /\bYG\s*(Entertainment|Family)\b/i,
+  /\bStone\s*Music/i,
+  /\b1theK\b/i,
+  /\bKakao\s*Entertainment/i,
+  /(Entertainment|엔터테인먼트)\s*$/i,
+  /(Music|뮤직)\s*$/i,
+  /\bRecords?\s*$/i,
+]
+
+/**
+ * 인기 트렌드 패널에서 숨길 대상인지 판별
+ * - 음악 카테고리(10), 게임 카테고리(20)
+ * - MV·뮤직비디오·공식 뮤비 제목
+ * - 게임 플레이·공략 제목
+ * - 연예 기획사·음악 레이블 채널
+ *
+ * @param {{ title: string, channelTitle: string, categoryId?: string }} video
+ * @returns {boolean}
+ */
+export function isExcludedFromTrending(video) {
+  // 카테고리 기반: Music(10), Gaming(20)
+  if (video.categoryId === '10' || video.categoryId === '20') return true
+  // 제목: MV·뮤직비디오
+  if (MV_TITLE_PATTERNS.some(p => p.test(video.title))) return true
+  // 제목: 게임 플레이·공략
+  if (GAME_TITLE_PATTERNS.some(p => p.test(video.title))) return true
+  // 채널명: 기획사·레이블
+  if (ENTERTAINMENT_CHANNEL_PATTERNS.some(p => p.test(video.channelTitle))) return true
+  return false
+}

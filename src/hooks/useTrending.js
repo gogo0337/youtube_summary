@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 
-const CACHE_PREFIX = 'yt_trending_v2_'
+const CACHE_PREFIX = 'yt_trending_v3_' // v3: categoryId 필드 추가
 const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY
 const BASE_URL = 'https://www.googleapis.com/youtube/v3'
 
@@ -75,6 +75,7 @@ export function useTrending(onQuotaUsed) {
         likeCount: parseInt(v.statistics?.likeCount || 0),
         commentCount: parseInt(v.statistics?.commentCount || 0),
         publishedAt: v.snippet.publishedAt,
+        categoryId: v.snippet.categoryId || '',
       }))
 
       const data = { date: new Date().toISOString(), videos }

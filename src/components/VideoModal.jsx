@@ -167,11 +167,68 @@ export default function VideoModal({ video, onClose, onQuotaUsed }) {
             {video.title}
           </div>
 
-          {/* 채널 */}
-          <span className="inline-flex items-center gap-1.5 bg-blue-950/60 border border-blue-800/40 text-blue-300 text-xs px-3 py-1 rounded-full">
-            <span className="w-2 h-2 rounded-full bg-blue-400 inline-block" />
-            {video.channelTitle}
-          </span>
+          {/* ── 채널 + 채널 평균 조회수 (가장 prominent) ── */}
+          <div className="bg-gradient-to-br from-emerald-950/40 via-[#1a2018] to-blue-950/30 border border-emerald-700/40 rounded-xl p-3 sm:p-4">
+            <div className="flex items-start justify-between gap-3">
+              {/* 채널 정보 */}
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <div className="w-9 h-9 rounded-full bg-blue-900/40 border border-blue-700/40 flex items-center justify-center flex-shrink-0">
+                  <span className="text-blue-300 text-base">📺</span>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-blue-200 text-sm font-semibold truncate">{video.channelTitle}</div>
+                  <div className="text-gray-500 text-[10px] mt-0.5">
+                    구독자 {fmt(video.subscriberCount)} · 영상 {fmt(video.videoCount)}개
+                  </div>
+                </div>
+              </div>
+
+              {/* 평균 조회수 — 큰 숫자 */}
+              {video.avgViewsPerVideo > 0 && (
+                <div className="text-right flex-shrink-0">
+                  <div className="text-emerald-300 text-2xl sm:text-3xl font-bold leading-none tabular-nums">
+                    {fmt(video.avgViewsPerVideo)}
+                  </div>
+                  <div className="text-emerald-500 text-[10px] mt-1 font-medium">채널 평균 조회수</div>
+                </div>
+              )}
+            </div>
+
+            {/* 이 영상 vs 채널 평균 비교 바 */}
+            {video.avgViewsPerVideo > 0 && video.viewCount > 0 && (
+              <div className="mt-3 pt-3 border-t border-emerald-900/40">
+                <div className="flex items-center justify-between text-[10px] mb-1.5">
+                  <span className="text-gray-500">이 영상 조회수</span>
+                  <span className={`font-semibold ${
+                    video.viewCount >= video.avgViewsPerVideo ? 'text-emerald-300' : 'text-gray-400'
+                  }`}>
+                    {video.viewCount >= video.avgViewsPerVideo
+                      ? `🔥 평균 대비 ${((video.viewCount / video.avgViewsPerVideo)).toFixed(1)}배 (+${((video.viewCount / video.avgViewsPerVideo) * 100 - 100).toFixed(0)}%)`
+                      : `평균 ${(100 - (video.viewCount / video.avgViewsPerVideo) * 100).toFixed(0)}% 미달`
+                    }
+                  </span>
+                </div>
+                <div className="relative bg-[#2a2a2a] rounded-full h-2 overflow-hidden">
+                  {/* 평균 위치 마커 */}
+                  <div className="absolute top-0 bottom-0 w-px bg-gray-500 left-1/2 z-10" title="평균선" />
+                  {/* 채워진 바 */}
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      video.viewCount >= video.avgViewsPerVideo
+                        ? 'bg-gradient-to-r from-emerald-600 to-emerald-400'
+                        : 'bg-gradient-to-r from-gray-700 to-gray-500'
+                    }`}
+                    style={{ width: `${Math.min(100, (video.viewCount / Math.max(video.avgViewsPerVideo, 1)) * 50)}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[9px] text-gray-600 mt-1">
+                  <span>0</span>
+                  <span>평균 {fmt(video.avgViewsPerVideo)}</span>
+                  <span>2x+</span>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* 주요 지표 */}
           <div className="grid grid-cols-3 gap-2">
@@ -189,40 +246,6 @@ export default function VideoModal({ video, onClose, onQuotaUsed }) {
               </div>
             ))}
           </div>
-
-          {/* 채널 평균 조회수 */}
-          {video.avgViewsPerVideo > 0 && (
-            <div className="bg-[#1e2a1e] border border-emerald-800/40 rounded-lg p-3">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div>
-                  <span className="text-emerald-400 text-xs font-semibold">채널 평균 조회수</span>
-                  <span className="text-gray-500 text-[10px] ml-1.5">총 {fmt(video.channelTotalViews)}회 ÷ {fmt(video.videoCount)}개</span>
-                </div>
-                <span className="text-emerald-300 text-lg font-bold">{fmt(video.avgViewsPerVideo)}</span>
-              </div>
-              {/* 이 영상 vs 채널 평균 비교 */}
-              {video.viewCount > 0 && (
-                <div className="mt-2 flex items-center gap-2">
-                  <div className="flex-1 bg-[#2a2a2a] rounded-full h-1.5 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${
-                        video.viewCount >= video.avgViewsPerVideo ? 'bg-emerald-500' : 'bg-gray-600'
-                      }`}
-                      style={{ width: `${Math.min(100, (video.viewCount / Math.max(video.avgViewsPerVideo, 1)) * 50)}%` }}
-                    />
-                  </div>
-                  <span className={`text-[10px] font-medium whitespace-nowrap ${
-                    video.viewCount >= video.avgViewsPerVideo ? 'text-emerald-400' : 'text-gray-500'
-                  }`}>
-                    {video.viewCount >= video.avgViewsPerVideo
-                      ? `평균 ${((video.viewCount / video.avgViewsPerVideo) * 100 - 100).toFixed(0)}% 초과`
-                      : `평균 ${(100 - (video.viewCount / video.avgViewsPerVideo) * 100).toFixed(0)}% 미달`
-                    }
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* 실적도 / 공헌도 */}
           <div className="grid grid-cols-2 gap-2">

@@ -1,13 +1,15 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useTrending } from '../hooks/useTrending'
+import { isExcludedFromTrending } from '../utils/channelFilter'
 
+// 음악(10)·게임(20) 카테고리는 제외 (사용자 요청)
 const CATEGORIES = [
   { id: '0',  label: '전체',   emoji: '🔥' },
-  { id: '10', label: '음악',   emoji: '🎵' },
-  { id: '20', label: '게임',   emoji: '🎮' },
   { id: '17', label: '스포츠', emoji: '⚽' },
   { id: '24', label: '엔터',   emoji: '🎬' },
   { id: '25', label: '뉴스',   emoji: '📰' },
+  { id: '28', label: '과학·기술', emoji: '🔬' },
+  { id: '22', label: '인물·블로그', emoji: '📹' },
 ]
 
 function formatViews(n) {
@@ -39,7 +41,7 @@ export default function TrendingPanel({ onSearch, onQuotaUsed }) {
   const [view, setView]  = useState('list') // 'list' | 'keyword'
 
   const {
-    trending,
+    trending: rawTrending,
     updatedAt,
     loading,
     error,
@@ -47,6 +49,12 @@ export default function TrendingPanel({ onSearch, onQuotaUsed }) {
     switchCategory,
     refresh,
   } = useTrending(onQuotaUsed)
+
+  // MV·뮤직비디오·게임·연예기획사 채널 제외
+  const trending = useMemo(
+    () => rawTrending.filter(v => !isExcludedFromTrending(v)),
+    [rawTrending]
+  )
 
   const updatedDate = updatedAt
     ? new Date(updatedAt).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
